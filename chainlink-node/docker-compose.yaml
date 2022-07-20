@@ -1,0 +1,86 @@
+
+version: '3.8'
+
+services:
+
+  crdb-0:
+    container_name: crdb-0
+    hostname: crdb-0
+    image: cockroachdb/cockroach:latest
+    env_file:
+      - ~/Documents/chainlink-node/.cockroach/.env
+    command: start --cluster-name=chainlink-postgres --logtostderr=WARNING --log-file-verbosity=WARNING --insecure --join=crdb-0
+    
+    networks:
+      - data
+
+  crdb-1:
+    container_name: crdb-1
+    hostname: crdb-1
+    image: cockroachdb/cockroach:latest
+    command: start --cluster-name=chainlink-postgres --logtostderr=WARNING --log-file-verbosity=WARNING --insecure --join=crdb-0
+    networks:
+      - data
+    depends_on:
+      - crdb-0
+
+  crdb-2:
+    container_name: crdb-2
+    hostname: crdb-2
+    image: cockroachdb/cockroach:latest
+    command: start --cluster-name=chainlink-postgres --logtostderr=WARNING --log-file-verbosity=WARNING --insecure --join=crdb-0
+    networks:
+      - data
+    depends_on:
+      - crdb-0
+
+  lb:
+    container_name: nginx-lb
+    hostname: lb
+    image: nginx:stable
+    volumes:
+      - ~/Documents/chainlink-node/nginx.conf:/etc/nginx/nginx.conf
+    ports:
+      - "26257:26257"
+      - "8080:8080"
+      - "8545:8545"
+      - "8546:8546"
+    networks:
+      - data
+      - service
+    depends_on:
+      - crdb-0
+      - crdb-1
+      - crdb-2
+
+  crdb-init:
+    container_name: crdb-init
+    hostname: crdb-init
+    image: timveil/cockroachdb-remote-client:latest
+    env_file:
+      - ~/Documents/chainlink-node/.cockroach/.env
+    networks:
+      - data
+    depends_on:
+      - lb
+
+  chainlink-node:
+    container_name: chainlink-node
+    hostname: chainlink
+    image: smartcontract/chainlink:1.5.1-nonroot
+    volumes:
+      - ~/Documents/chainlink-node/.chainlink-rinkeby:/chainlink
+    env_file:
+     - ~/Documents/chainlink-node/.chainlink-rinkerby/.env
+    ports:
+      - "6688:6688"
+    networks:
+      - service
+    depends_on:
+      - lb
+
+networks:
+  data:
+    driver: bridge
+  service:
+    driver: bridge 
