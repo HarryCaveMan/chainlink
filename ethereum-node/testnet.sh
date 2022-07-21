@@ -34,6 +34,6 @@ case $1 in
     $1
   ;;
   *)
-   echo "Invalid operation, supported operations are: start-from-scratch|start|stop|restart"
+   echo "Invalid operation, supported operations are: start_from_scratch|start|stop|restart"
   ;;
 esac

@@ -9,8 +9,7 @@ services:
     image: cockroachdb/cockroach:latest
     env_file:
       - ~/Documents/chainlink-node/.cockroach/.env
-    command: start --cluster-name=chainlink-postgres --logtostderr=WARNING --log-file-verbosity=WARNING --insecure --join=crdb-0
-    
+    command: start --cluster-name=chainlink-postgres --logtostderr=WARNING --log-file-verbosity=WARNING --insecure --join=crdb-0    
     networks:
       - data
 
