@@ -2,84 +2,58 @@
 version: '3.8'
 
 services:
-
-  crdb-0:
-    container_name: crdb-0
-    hostname: crdb-0
-    image: cockroachdb/cockroach:latest
-    env_file:
-      - ~/Documents/chainlink-node/.cockroach/.env
-    command: start --cluster-name=chainlink-postgres --logtostderr=WARNING --log-file-verbosity=WARNING --insecure --join=crdb-0    
-    networks:
-      - data
-
-  crdb-1:
-    container_name: crdb-1
-    hostname: crdb-1
-    image: cockroachdb/cockroach:latest
-    command: start --cluster-name=chainlink-postgres --logtostderr=WARNING --log-file-verbosity=WARNING --insecure --join=crdb-0
-    networks:
-      - data
-    depends_on:
-      - crdb-0
-
-  crdb-2:
-    container_name: crdb-2
-    hostname: crdb-2
-    image: cockroachdb/cockroach:latest
-    command: start --cluster-name=chainlink-postgres --logtostderr=WARNING --log-file-verbosity=WARNING --insecure --join=crdb-0
-    networks:
-      - data
-    depends_on:
-      - crdb-0
-
-  lb:
-    container_name: nginx-lb
-    hostname: lb
-    image: nginx:stable
+  psql-0:
+    container_name: psql-0
+    image: docker.io/bitnami/postgresql:14
     volumes:
-      - ~/Documents/chainlink-node/nginx.conf:/etc/nginx/nginx.conf
-    ports:
-      - "26257:26257"
-      - "8080:8080"
-      - "8545:8545"
-      - "8546:8546"
+      - psql_0_data:/bitnami/postgres
+      - ~/Documents/chainlink-node/.psql-0/pg_hba.conf:/bitnami/postgresql/conf/pg_hba.conf
+    env_file: 
+      - ~/Documents/chainlink-node/.psql-0/.env
     networks:
-      - data
       - service
+    healthcheck:
+      test: pg_isready -U chainlink
+      interval: 10s
+      timeout: 5s
+      retries: 5
+          
+  psql-1:
+    container_name: psql-1
+    image: docker.io/bitnami/postgresql:14
     depends_on:
-      - crdb-0
-      - crdb-1
-      - crdb-2
-
-  crdb-init:
-    container_name: crdb-init
-    hostname: crdb-init
-    image: timveil/cockroachdb-remote-client:latest
-    env_file:
-      - ~/Documents/chainlink-node/.cockroach/.env
+      - psql-0
+    env_file: 
+      - ~/Documents/chainlink-node/.psql-1/.env
     networks:
-      - data
-    depends_on:
-      - lb
+      - service
 
   chainlink-node:
     container_name: chainlink-node
-    hostname: chainlink
-    image: smartcontract/chainlink:1.5.1-nonroot
+    image: smartcontract/chainlink:1.6.0-nonroot
     volumes:
-      - ~/Documents/chainlink-node/.chainlink-rinkeby:/chainlink
+      - ~/Documents/chainlink-node/.chainlink-rinkerby:/chainlink
     env_file:
      - ~/Documents/chainlink-node/.chainlink-rinkerby/.env
     ports:
       - "6688:6688"
+    command:
+      - local
+      - node
+      - -p 
+      - /chainlink/.keystore
+      - -a
+      - /chainlink/.api
     networks:
       - service
     depends_on:
-      - lb
+      psql-0:
+        condition: service_healthy      
+
+volumes:
+  psql_0_data:
+    driver: local
 
 networks:
-  data:
-    driver: bridge
   service:
-    driver: bridge 
+    driver: bridge
