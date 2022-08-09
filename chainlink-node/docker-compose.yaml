@@ -38,7 +38,7 @@ services:
     ports:
       - "6688:6688"
     command:
-      - local
+      - start
       - node
       - -p 
       - /chainlink/.keystore
